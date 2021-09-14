@@ -1,0 +1,177 @@
+#include <iostream>
+#include <cmath>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <list>
+#include <map>
+
+
+using namespace std;
+
+// Источники : https://habr.com/ru/post/144200/; https://3-info.ru/post/13129; 
+
+class Node //создание узла
+{
+public:
+	int count;
+	char symbol;
+	Node* left;
+	Node* right;
+
+	Node() { }
+
+	Node(char s, int c)
+	{
+		symbol = s;
+		count = c;
+	}
+
+	Node(Node* l, Node* r) // создание узла для родителей
+	{
+		symbol = 0;
+		left = l;
+		right = r;
+		count = l->count + r->count;
+	}
+
+};
+
+void create_tree(Node* root, vector<bool>& code, map<char, vector<bool>>& table) // создание дерева 
+{
+	if (root->left)
+	{
+		code.push_back(0); // левая ветка
+		create_tree(root->left, code, table);
+	}
+
+	if (root->right)
+	{
+		code.push_back(1); // правая ветка
+		create_tree(root->right, code, table);
+	}
+
+	if (root->symbol)
+		table[root->symbol] = code;
+	if (code.size())
+		code.pop_back();
+}
+
+bool inorder(const Node* a, const Node* b) // обход дерева
+{
+	return a->count < b->count;
+}
+
+string Decode(string& str, map<vector<bool>, char>& table) // расшифровка из цифр в буквы
+{
+	string out = "";
+	vector<bool> count;
+	for (int i = 0; i < str.length(); i++)
+	{
+		count.push_back(str[i] == '0' ? false : true);
+		if (table[count])
+		{
+			out += table[count];
+			count.clear();
+		}
+	}
+	return out;
+}
+
+int main() {
+    setlocale(LC_ALL, "RUS");
+	//открытие файлов на чтение и запись
+	//..........................
+	ofstream OUT,  OUT1;
+	ifstream in;
+	in.open("input.txt"); // файл ввода
+	OUT.open("output.txt"); // файл вывода после алгоритма
+	OUT1.open("output1.txt"); // файл вывода после расшифровки
+
+    string line;
+	if (in.is_open())
+	{
+		while (getline(in, line))
+		{
+			
+			//cout << line << endl;
+		}
+	}
+	//..........................
+
+
+	// генерация и запись в дерево 
+	//..........................
+	map<char, int> symbols;
+	for (int i = 0; i < line.length(); i++)
+		symbols[line[i]]++;
+
+	list<Node*> trees;
+	map<char, int>::iterator itr;
+	for (itr = symbols.begin(); itr != symbols.end(); itr++)
+	{
+		Node* p = new Node(itr->first, itr->second); 
+		trees.push_back(p);
+	}
+
+	while (trees.size() != 1)
+	{
+		trees.sort(inorder);
+
+		Node* l = trees.front();
+		trees.pop_front();
+		Node* r = trees.front();
+		trees.pop_front();
+
+		Node* parent = new Node(l, r);
+		trees.push_back(parent);
+	}
+
+	Node* root = trees.front();
+	//..........................
+
+	// обход для генерации ключ значений
+	//..........................
+	vector<bool> count;
+	map<char, vector<bool> > table;
+	create_tree(root, count, table); 
+	//..........................
+
+	// вывод кол-ва символов и их кодировку	
+	
+	for (itr = symbols.begin(); itr != symbols.end(); itr++)
+	{
+		cout << itr->first << " - ";
+		for (int j = 0; j < table[itr->first].size(); j++)
+			cout << table[itr->first][j];
+		cout << endl;
+	}
+	string out = "";
+	//..........................
+
+
+	// печать сжатого сообщения 
+	//..........................
+	for (int i = 0; i < line.length(); i++)
+		for (int j = 0; j < table[line[i]].size(); j++)
+		{
+			out += table[line[i]][j] + '0';
+			OUT << table[line[i]][j];
+		}
+	OUT << endl;
+	OUT << out.c_str() << endl;
+	//..........................
+
+	// расшифрока кода
+	//..........................
+	map<vector<bool>, char> ftable;
+	for (auto i = table.begin(); i != table.end(); i++)
+		ftable[i->second] = i->first;
+	OUT1 << Decode(out, ftable).c_str() << endl;
+	//..........................
+	cout << "ГОТОВО!!!!!!!!!";
+	in.close();
+    system("Pause");
+    return 0;
+
+}
